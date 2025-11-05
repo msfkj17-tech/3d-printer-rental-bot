@@ -1,0 +1,54 @@
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+
+# Словарь для хранения состояний пользователей
+user_states = {}
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    user_states[user_id] = "start"
+    keyboard = [
+        [InlineKeyboardButton("Аренда принтера", callback_data="rent")],
+        [InlineKeyboardButton("Печать модели", callback_data="print")],
+        [InlineKeyboardButton("Статус заказа", callback_data="status")],
+        [InlineKeyboardButton("Помощь", callback_data="help")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Привет! Выберите действие:", reply_markup=reply_markup)
+
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
+
+    if user_states[user_id] == "start":
+        if data == "rent":
+            user_states[user_id] = "rent"
+            await query.answer()
+            await query.edit_message_text(text="Вы выбрали аренду принтера. Нажмите 'Подтвердить', чтобы продолжить.")
+            keyboard = [[InlineKeyboardButton("Подтвердить", callback_data="confirm_rent")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_reply_markup(reply_markup=reply_markup)
+        elif data == "print":
+            user_states[user_id] = "print"
+            await query.answer()
+            await query.edit_message_text(text="Вы выбрали печать модели. Нажмите 'Загрузить модель', чтобы продолжить.")
+            keyboard = [[InlineKeyboardButton("Загрузить модель", callback_data="upload_model")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_reply_markup(reply_markup=reply_markup)
+        # Аналогично для других команд
+
+    elif user_states[user_id] == "rent":
+        if data == "confirm_rent":
+            user_states[user_id] = "start"
+            await query.answer()
+            await query.edit_message_text(text="Аренда принтера подтверждена!")
+        # Аналогично для других состояний
+
+    # Аналогично для других состояний
+
+application = Application.builder().token("YOUR_TOKEN_HERE").build()
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CallbackQueryHandler(button))
+application.run_polling()
